@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -35,15 +35,18 @@ import jdk.codetools.apidiff.model.ElementKey.TypeElementKey;
 import jdk.codetools.apidiff.model.ElementKey.TypeParameterElementKey;
 import jdk.codetools.apidiff.model.ElementKey.VariableElementKey;
 
-class GetFileVisitor implements ElementKey.Visitor<DocPath, Void> {
+class GetFileVisitor implements ElementKey.Visitor<DocPath, DocPath> {
 
-    DocPath getFile(ElementKey k) {
-        return k.accept(this, null);
+    DocPath getFile(ElementKey k, DocPath current) {
+        return k.accept(this, current);
     }
 
     @Override
-    public DocPath visitModuleElement(ModuleElementKey k, Void _p) {
-        return getModuleDir(k).resolve("module-summary.html");
+    public DocPath visitModuleElement(ModuleElementKey k, DocPath current) {
+        DocPath path = inSinglePageMode(current)
+                ? PageReporter.ALL_CHANGES
+                : DocPath.create("module-summary.html");
+        return getModuleDir(k).resolve(path);
     }
 
     private DocPath getModuleDir(ModuleElementKey k) {
@@ -53,8 +56,11 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, Void> {
     }
 
     @Override
-    public DocPath visitPackageElement(PackageElementKey k, Void _p) {
-        return getPackageDir(k).resolve("package-summary.html");
+    public DocPath visitPackageElement(PackageElementKey k, DocPath current) {
+        DocPath path = inSinglePageMode(current)
+                ? PageReporter.ALL_CHANGES
+                : DocPath.create("package-summary.html");
+        return getPackageDir(k).resolve(path);
     }
 
     private DocPath getPackageDir(PackageElementKey k) {
@@ -65,7 +71,7 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, Void> {
     }
 
     @Override
-    public DocPath visitTypeElement(TypeElementKey k, Void _p) {
+    public DocPath visitTypeElement(TypeElementKey k, DocPath current) {
         StringBuilder fn = new StringBuilder(k.name + ".html");
         while (k.enclosingKey instanceof TypeElementKey) {
             k = (TypeElementKey) k.enclosingKey;
@@ -75,17 +81,21 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, Void> {
     }
 
     @Override
-    public DocPath visitExecutableElement(ExecutableElementKey k, Void _p) {
-        return k.typeKey.accept(this, null);
+    public DocPath visitExecutableElement(ExecutableElementKey k, DocPath current) {
+        return k.typeKey.accept(this, current);
     }
 
     @Override
-    public DocPath visitVariableElement(VariableElementKey k, Void _p) {
-        return k.typeKey.accept(this, null);
+    public DocPath visitVariableElement(VariableElementKey k, DocPath current) {
+        return k.typeKey.accept(this, current);
     }
 
     @Override
-    public DocPath visitTypeParameterElement(TypeParameterElementKey k, Void _p) {
+    public DocPath visitTypeParameterElement(TypeParameterElementKey k, DocPath current) {
         return null;
+    }
+
+    private boolean inSinglePageMode(DocPath path) {
+        return PageReporter.ALL_CHANGES.equals(path.basename());
     }
 }

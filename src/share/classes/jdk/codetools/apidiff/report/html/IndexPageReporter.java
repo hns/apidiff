@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -56,12 +56,18 @@ public class IndexPageReporter extends PageReporter<ElementKey> {
     }
 
     @Override
+    protected void writeFile() {
+        super.writeFile();
+        writeAllChangesFile();
+    }
+
+    @Override
     protected HtmlTree buildPageContent() {
         return new HtmlTree(TagName.HTML, buildHead(), buildBody());
     }
 
     @Override
-    public String getTitle() {
+    public String getTitle(boolean qualifiedName) {
         String t = getOptions().getTitle();
         return t != null ? t : msgs.getString("overview.title");
     }
@@ -76,7 +82,8 @@ public class IndexPageReporter extends PageReporter<ElementKey> {
         HtmlTree body = HtmlTree.BODY().setClass("index");
         body.add(buildHeader());
         HtmlTree main = HtmlTree.MAIN();
-        main.add(buildPageHeading());
+        main.add(buildPageHeading().add(HtmlTree.P(HtmlTree.A(ALL_CHANGES.getPath(),
+                        Text.of(msgs.getString("view.in-one-file.link"))))));
         main.add(buildSummary());
         main.add(buildEnclosedElements());
         main.add(buildNotes());
@@ -90,8 +97,8 @@ public class IndexPageReporter extends PageReporter<ElementKey> {
     }
 
     @Override
-    protected Content buildPageHeading() {
-        return HtmlTree.H1(Text.of(getTitle()));
+    protected HtmlTree buildPageHeading() {
+        return new HtmlTree(TagName.DIV, HtmlTree.H1(Text.of(getTitle(true)))).setClass("pageHeading");
     }
 
     private List<Content> buildSummary() {

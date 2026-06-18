@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -44,6 +45,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -70,7 +72,6 @@ import javax.tools.JavaFileObject;
 
 import com.sun.source.doctree.DocCommentTree;
 import com.sun.source.doctree.DocTree;
-import java.util.Optional;
 import jdk.codetools.apidiff.Abort;
 import jdk.codetools.apidiff.Log;
 import jdk.codetools.apidiff.Messages;
@@ -127,6 +128,8 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
     protected final Messages msgs;
 
+    protected final static DocPath ALL_CHANGES = DocPath.create("all-changes.html");
+
     // The following collections accumulate the results reported with _report..._ methods.
     // TODO: the methods that put items into these maps should check they are not
     //       overwriting any existing information
@@ -155,12 +158,17 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
     protected final ResultTable resultTable;
 
+    // Flag to signal this reporter is currently used by another reporter to generate embedded content.
+    // In embedded mode a reporter may produce slightly different output and suppress side effects
+    // that occur during normal rendering.
+    protected boolean embeddedMode;
+
     protected PageReporter(HtmlReporter parent) {
         this(parent, null, new DocPath("index.html"));
     }
 
     protected PageReporter(HtmlReporter parent, K eKey) {
-        this(parent, eKey, new GetFileVisitor().getFile(eKey));
+        this(parent, eKey, new GetFileVisitor().getFile(eKey, DocPath.empty));
     }
 
     private PageReporter(HtmlReporter parent, K eKey, DocPath file) {
@@ -190,7 +198,8 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         differentDocFiles = Collections.emptyMap();
 
         apiMaps = new HashMap<>();
-        results = new HashMap<>();
+        results = new LinkedHashMap<>();
+        embeddedMode = false;
     }
 
     //<editor-fold desc="Implements Reporter">
@@ -419,7 +428,10 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
      * @return the {@code <head>} element for the page.
      */
     protected HtmlTree buildHead() {
-        String title = getTitle();
+        return buildHead(getTitle(true));
+    }
+
+    protected HtmlTree buildHead(String title) {
         if (parent.options.getTitle() != null) {
             title = String.format("%s: %s", parent.options.getTitle(), title);
         }
@@ -430,7 +442,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
                         .map(l -> HtmlTree.LINK("stylesheet", l.getPath())));
     }
 
-    protected abstract String getTitle();
+    protected abstract String getTitle(boolean qualifiedName);
 
     /**
      * Returns the {@code <body>} element for the page.
@@ -454,7 +466,9 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         HtmlTree body = HtmlTree.BODY().setClass(pageClass);
         body.add(buildHeader());
         HtmlTree main = HtmlTree.MAIN();
-        main.add(buildPageHeading());
+        main.add(buildPageHeading().add(
+                HtmlTree.P(HtmlTree.A(ALL_CHANGES.getPath(),
+                        Text.of(msgs.getString("view.in-one-file.link"))))));
         main.add(buildPageElement());
         main.add(buildDocComments(pagePos));
         main.add(buildAPIDescriptions(pagePos));
@@ -544,7 +558,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         contents.add(HtmlTree.DIV(infoBox.toArray(Content[]::new)).setClass("info"));
         Text index = Text.of(parent.indexPageReporter.getName());
         HtmlTree ul = HtmlTree.UL();
-        ul.add(HtmlTree.LI((pageKey == null) ? index : HtmlTree.A(links.getPath("index.html").getPath(), index)));
+        ul.add(HtmlTree.LI((pageKey == null) ? index : HtmlTree.A(links.getOverviewPath().getPath(), index)));
         contents.add(HtmlTree.NAV(ul));
         return new HtmlTree(TagName.DIV, contents).setClass("bar");
     }
@@ -554,7 +568,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
      *
      * @return the page heading
      */
-    protected Content buildPageHeading() {
+    protected HtmlTree buildPageHeading() {
         return new PageHeading(Position.of(pageKey)).toContent();
     }
 
@@ -567,7 +581,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
      */
     protected Content buildPageElement() {
         Position pagePos = Position.of(pageKey);
-        List<Content> prelude = List.of(PageReporter.this.getResultKind(pagePos).getContent(), buildMissingInfo(pagePos), buildNotes(pageKey));
+        List<Content> prelude = List.of(getResultKind(pagePos).getContent(), buildMissingInfo(pagePos), buildNotes(pageKey));
         Content signature = buildSignature();
         return HtmlTree.DIV().setClass("element").add(prelude).add(signature);
     }
@@ -597,12 +611,14 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         Map<Notes.Entry, Boolean> sorted = new TreeMap<>(comp);
         sorted.putAll(entries);
 
-        NotesTable notesTable = parent.indexPageReporter.notesTable;
-        sorted.forEach((e, isParent) -> {
-            if (!isParent) {
-                notesTable.add(e, eKey);
-            }
-        });
+        if (!embeddedMode) {
+            NotesTable notesTable = parent.indexPageReporter.notesTable;
+            sorted.forEach((e, isParent) -> {
+                if (!isParent) {
+                    notesTable.add(e, eKey);
+                }
+            });
+        }
 
         List<Content> contents = new ArrayList<>();
         contents.add(Text.of(msgs.getString("notes.prefix")));
@@ -645,7 +661,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
             }
             if (docComments != null && !docComments.isEmpty()) {
                 TextDiffBuilder b = new TextDiffBuilder(this);
-                List<Content> contents = b.build(docComments, ck -> resultTable.inc(pos.getElementKey(), ck));
+                List<Content> contents = b.build(docComments, getCounter(pos));
                 return new HtmlTree(TagName.DIV, contents).setClass("rawDocComments");
             }
         }
@@ -700,7 +716,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
                 var b = options.compareApiDescriptionsAsText()
                         ? new TextDiffBuilder(this)
                         : new HtmlDiffBuilder(this);
-                var contents = b.build(apiDescriptions, ck -> resultTable.inc(pos.getElementKey(), ck));
+                var contents = b.build(apiDescriptions, getCounter(pos));
                 return new HtmlTree(TagName.DIV, contents).setClass("apiDescriptions");
             }
         }
@@ -783,13 +799,13 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
         List<ContentAndResultKind> converted =
                 enclosed.stream()
-                        .map(eKey -> buildEnclosedElement(eKey))
+                        .map(this::buildEnclosedElement)
                         .toList();
 
         if (!converted.isEmpty()) {
             boolean allUnchanged = converted.stream().allMatch(c -> c.resultKind() == ResultKind.SAME);
             HtmlTree section = HtmlTree.SECTION().setClass("enclosed");
-            section.add(HtmlTree.H2(Text.of(msgs.getString(titleKey))));
+            section.add(new HtmlTree(embeddedMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(titleKey))));
             HtmlTree ul = HtmlTree.UL();
             for (ContentAndResultKind c : converted) {
                 HtmlTree li = HtmlTree.LI(c.content());
@@ -996,6 +1012,103 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         return parent.options;
     }
 
+    private Consumer<CountKind> getCounter(Position pos) {
+        return !embeddedMode ? ck -> resultTable.inc(pos.getElementKey(), ck) : ck -> { };
+    }
+
+    protected void writeAllChangesFile() {
+        HtmlTree tableOfContents = pageKey == null ? HtmlTree.DIV() : HtmlTree.UL();
+        List<PageReporter<?>> changedReporters = new ArrayList<>();
+        collectAllChanges(tableOfContents, changedReporters);
+
+        DocPath docPath = file.parent().resolve(ALL_CHANGES);
+        DocPath origPath = links.switchPath(docPath, false);
+        try {
+            String title = msgs.getString("view.all-changes.title", getAllChangesSectionHeader());
+            HtmlTree html = new HtmlTree(TagName.HTML, buildHead(title),
+                    buildAllChangesBody(docPath, tableOfContents, changedReporters));
+            writeFile(docPath, html);
+        } finally {
+            links.switchPath(origPath, false);
+        }
+    }
+
+    protected void collectAllChanges(HtmlTree toc, List<PageReporter<?>> changedReporters) {
+        if (pageKey != null && !getResult(pageKey)) {
+            changedReporters.add(this);
+            ResultKind result = getResultKind(pageKey);
+            toc.add(HtmlTree.LI(HtmlTree.SPAN(result.getContent(), Text.SPACE,
+                    HtmlTree.A("#" + links.getQualifiedId(pageKey), Text.of(getAllChangesSectionHeader())))));
+        }
+        List<PageReporter<?>> changed = getChangedPageReporters();
+        if (!changed.isEmpty()) {
+            HtmlTree subToc = HtmlTree.UL();
+            for (PageReporter<?> r : changed) {
+                r.collectAllChanges(subToc, changedReporters);
+            }
+            toc.add(subToc);
+        }
+    }
+
+    private String getAllChangesSectionHeader() {
+        var title = getTitle(false);
+        return title.substring(0, 1).toUpperCase() + title.substring(1);
+    }
+
+    private Content buildAllChangesBody(DocPath path, Content tableOfContents, List<PageReporter<?>> changedReporters) {
+        HtmlTree body = HtmlTree.BODY().setClass("all-changes");
+        body.add(buildHeader());
+
+        HtmlTree main = HtmlTree.MAIN();
+        main.add(buildPageHeading().add(
+                HtmlTree.P(HtmlTree.A(file.basename().getPath(),
+                        Text.of(msgs.getString("view.in-multiple-files.link"))))));
+        main.add(HtmlTree.NAV(
+                new HtmlTree(TagName.H3, Text.of(msgs.getString("view.contents"))),
+                tableOfContents).setClass("changes-toc"));
+        for (PageReporter<? extends ElementKey> r : changedReporters) {
+            main.add(r.buildEmbeddedChangeSection(path));
+        }
+        body.add(main);
+        body.add(buildFooter());
+        return body;
+    }
+
+    Content buildEmbeddedChangeSection(DocPath path) {
+        if (embeddedMode) {
+            throw new IllegalStateException("already in embedded mode");
+        }
+        DocPath origPath = links.switchPath(path, true);
+        embeddedMode = true;
+        try {
+            Position pagePos = Position.of(pageKey);
+            HtmlTree content = HtmlTree.DIV().setClass("changed-type-content");
+            content.add(buildPageElement());
+            content.add(buildDocComments(pagePos));
+            content.add(buildAPIDescriptions(pagePos));
+            content.add(buildEnclosedElements());
+
+            String id = links.getQualifiedId(pageKey);
+            return HtmlTree.SECTION(
+                            HtmlTree.H2(links.createLink(pageKey, getAllChangesSectionHeader())),
+                            content)
+                    .setClass("changed-element")
+                    .setId(id);
+        } finally {
+            embeddedMode = false;
+            links.switchPath(origPath, false);
+        }
+    }
+
+    protected List<PageReporter<?>> getChangedPageReporters() {
+        return results.keySet().stream()
+                .filter(Position::isElement)
+                .map(Position::asElementKey)
+                .filter(ek -> ek != pageKey && !(ek instanceof MemberElementKey))
+                .map(parent::getPageReporter)
+                .filter(rep -> rep != this && !rep.getResult(rep.pageKey))
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
 
     /**
      * A utility class to generate the page heading for each page.
@@ -1007,7 +1120,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
             this.pos = pos;
         }
 
-        Content toContent() {
+        HtmlTree toContent() {
             List<Content> contents;
             if (pos.isElement()) {
                 contents = pos.asElementKey().accept(this, null);
@@ -1040,7 +1153,9 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
         @Override
         public List<Content> visitModuleElement(ModuleElementKey mKey, Void _p) {
-            return List.of(major("heading.module", mKey.name));
+            List<Content> contents = new ArrayList<>();
+            contents.add(major("heading.module", mKey.name));
+            return contents;
         }
 
         @Override

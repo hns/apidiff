@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
@@ -38,7 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.lang.model.element.Element;
 import javax.lang.model.element.ModuleElement;
 import javax.lang.model.element.ModuleElement.Directive;
@@ -52,6 +50,7 @@ import javax.lang.model.element.PackageElement;
 import jdk.codetools.apidiff.html.Content;
 import jdk.codetools.apidiff.html.Entity;
 import jdk.codetools.apidiff.html.HtmlTree;
+import jdk.codetools.apidiff.html.TagName;
 import jdk.codetools.apidiff.html.Text;
 import jdk.codetools.apidiff.model.API;
 import jdk.codetools.apidiff.model.APIMap;
@@ -77,7 +76,7 @@ class ModulePageReporter extends PageReporter<ModuleElementKey> {
     }
 
     @Override
-    protected String getTitle() {
+    protected String getTitle(boolean qualifiedName) {
         return "module " + pageKey.name;
     }
 
@@ -136,6 +135,7 @@ class ModulePageReporter extends PageReporter<ModuleElementKey> {
         }
 
         super.writeFile();
+        writeAllChangesFile();
     }
 
     private Content buildModifiers() {
@@ -191,7 +191,7 @@ class ModulePageReporter extends PageReporter<ModuleElementKey> {
             boolean allUnchanged = converted.stream()
                                             .allMatch(c -> c.resultKind() == ResultKind.SAME);
             HtmlTree section = HtmlTree.SECTION().setClass("enclosed");
-            section.add(HtmlTree.H2(Text.of(msgs.getString(headingKey))));
+            section.add(new HtmlTree(embeddedMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(headingKey))));
             HtmlTree ul = HtmlTree.UL();
             for (ContentAndResultKind c : converted) {
                 HtmlTree item = HtmlTree.LI(c.content());

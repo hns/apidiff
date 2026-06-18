@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -52,6 +52,9 @@ h5 {
 }
 h6 {
     font-size:11px;
+}
+.changed-element h3, .changes-toc h3 {
+    font-style: normal;
 }
 
 /* Links. */
@@ -118,6 +121,16 @@ main {
     margin: 1em;
 }
 
+.changes-toc ul {
+    padding-left: 2em;
+}
+
+.changed-element {
+    border-top: 1px solid black;
+    margin-top: 2em;
+    padding-top: 1em;
+}
+
 
 /* Page heading: the <h1> and preceding text. */
 
@@ -177,11 +190,11 @@ div.signature {
 
 /* Elements. */
 
-.doc-files span.diff,   .element span.diff,   .enclosed span.diff,   .serial-form span.diff,
-.doc-files span.same,   .element span.same,   .enclosed span.same,   .serial-form span.same,
-.doc-files span.partial, .element span.partial, .enclosed span.partial, .serial-form span.partial,
-.doc-files span.add, .element span.add, .enclosed span.add, .serial-form span.add,
-.doc-files span.remove, .element span.remove, .enclosed span.remove, .serial-form span.remove {
+.doc-files span.diff,   .element span.diff,   .enclosed span.diff,   .serial-form span.diff,  .changes-toc span.diff,
+.doc-files span.same,   .element span.same,   .enclosed span.same,   .serial-form span.same,  .changes-toc span.same,
+.doc-files span.partial, .element span.partial, .enclosed span.partial, .serial-form span.partial, .changes-toc span.partial,
+.doc-files span.add, .element span.add, .enclosed span.add, .serial-form span.add, .changes-toc span.add,
+.doc-files span.remove, .element span.remove, .enclosed span.remove, .serial-form span.remove, .changes-toc span.remove {
     display: inline-block;
     width: 2em;
     margin-right: 0.5ex;
@@ -189,27 +202,27 @@ div.signature {
     font-weight: bold;
 }
 
-.doc-files span.diff, .element span.diff, .enclosed span.diff, .serial-form span.diff {
+.doc-files span.diff, .element span.diff, .enclosed span.diff, .serial-form span.diff, .changes-toc span.diff {
     background: #e0e0e0;
     color: #000;
 }
 
-.doc-files span.same, .element span.same, .enclosed span.same, .serial-form span.same {
+.doc-files span.same, .element span.same, .enclosed span.same, .serial-form span.same, .changes-toc span.same {
     background: #ffffff;
     color: #000;
 }
 
-.doc-files span.partial, .element span.partial, .enclosed span.partial, .serial-form span.partial {
+.doc-files span.partial, .element span.partial, .enclosed span.partial, .serial-form span.partial, .changes-toc span.partial {
     background: #ddf;
     color: #000;
 }
 
-.doc-files span.add, .element span.add, .enclosed span.add, .serial-form span.add {
+.doc-files span.add, .element span.add, .enclosed span.add, .serial-form span.add, .changes-toc span.add {
     background: #cfc;
     color: #000;
 }
 
-.doc-files span.remove, .element span.remove, .enclosed span.remove, .serial-form span.remove {
+.doc-files span.remove, .element span.remove, .enclosed span.remove, .serial-form span.remove, .changes-toc span.remove {
     background: #fcc;
     color: #000;
 }

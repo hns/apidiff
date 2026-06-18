@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -99,13 +99,14 @@ class PackagePageReporter extends PageReporter<PackageElementKey> {
         }
 
         super.writeFile();
+        writeAllChangesFile();
     }
 
     @Override
-    protected String getTitle() {
+    protected String getTitle(boolean qualifiedName) {
         StringBuilder sb = new StringBuilder();
         sb.append("package ");
-        if (pageKey.moduleKey != null) {
+        if (qualifiedName && pageKey.moduleKey != null) {
             ModuleElementKey mKey = (ModuleElementKey) pageKey.moduleKey;
             sb.append(mKey.name).append("/");
         }
@@ -130,5 +131,4 @@ class PackagePageReporter extends PageReporter<PackageElementKey> {
         addDocFiles(list);
         return list;
     }
-
 }

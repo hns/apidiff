@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -61,6 +61,7 @@ public class SignatureVisitor implements
         Position.Visitor<StringBuilder, StringBuilder> {
 
     private final Map<Position, APIMap<?>> apiMaps;
+    private final boolean qualified;
 
     /**
      * Creates an instance of a signature visitor.
@@ -68,7 +69,18 @@ public class SignatureVisitor implements
      * @param apiMaps the map containing the API elements to be used in the signature
      */
     public SignatureVisitor(Map<Position, APIMap<?>> apiMaps) {
+        this(apiMaps, true);
+    }
+
+    /**
+     * Creates an instance of a signature visitor.
+     *
+     * @param apiMaps the map containing the API elements to be used in the signature
+     * @param qualified whether to produce fully qualified signatures
+     */
+    public SignatureVisitor(Map<Position, APIMap<?>> apiMaps, boolean qualified) {
         this.apiMaps = apiMaps;
+        this.qualified = qualified;
     }
 
     /**
@@ -153,7 +165,7 @@ public class SignatureVisitor implements
 
     @Override
     public StringBuilder visitPackageElement(PackageElementKey k, StringBuilder sb) {
-        if (k.moduleKey != null) {
+        if (qualified && k.moduleKey != null) {
             k.moduleKey.accept(this, sb).append("/");
         }
         return sb.append(k.name);
@@ -161,13 +173,18 @@ public class SignatureVisitor implements
 
     @Override
     public StringBuilder visitTypeElement(TypeElementKey tek, StringBuilder sb) {
-        return tek.enclosingKey.accept(this, sb).append(".").append(tek.name);
+        if (qualified) {
+            tek.enclosingKey.accept(this, sb).append(".");
+        }
+        return sb.append(tek.name);
     }
 
     @Override
     public StringBuilder visitExecutableElement(ExecutableElementKey k, StringBuilder sb) {
-        k.typeKey.accept(this, sb);
-        sb.append("#");
+        if (qualified) {
+            k.typeKey.accept(this, sb);
+            sb.append("#");
+        }
         if (k.elementKind == ElementKind.CONSTRUCTOR) {
             TypeElementKey tek = (TypeElementKey) k.typeKey;
             sb.append(tek.name);
@@ -190,7 +207,10 @@ public class SignatureVisitor implements
 
     @Override
     public StringBuilder visitVariableElement(VariableElementKey k, StringBuilder sb) {
-        return k.typeKey.accept(this, sb).append("#").append(k.name);
+        if (qualified) {
+            k.typeKey.accept(this, sb).append("#");
+        }
+        return sb.append(k.name);
     }
 
     @Override

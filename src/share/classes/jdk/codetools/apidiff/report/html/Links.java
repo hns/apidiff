@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -50,13 +50,23 @@ import jdk.codetools.apidiff.model.TypeMirrorKey.WildcardTypeKey;
  * Factory for links within the generated report.
  */
 public class Links {
-    private GetFileVisitor getFile = new GetFileVisitor();
-    private final DocPath file;
-    private final DocPath pathToRoot;
+    private final GetFileVisitor getFile = new GetFileVisitor();
+    private DocPath file;
+    private DocPath pathToRoot;
+    private boolean embeddedMode;
 
     Links(DocPath file) {
         this.file = file;
         pathToRoot = file.parent().invert();
+        embeddedMode = false;
+    }
+
+    DocPath switchPath(DocPath newPath, boolean embeddedMode) {
+        DocPath oldPath = file;
+        this.file = newPath;
+        this.pathToRoot = file.parent().invert();
+        this.embeddedMode = embeddedMode;
+        return oldPath;
     }
 
     DocPath getPath(String path) {
@@ -67,12 +77,23 @@ public class Links {
         return pathToRoot.resolve(path);
     }
 
+    DocPath getOverviewPath() {
+        String path = PageReporter.ALL_CHANGES.equals(file.basename())
+                ? PageReporter.ALL_CHANGES.getPath()
+                : "index.html";
+        return getPath(path);
+    }
+
     HtmlTree createLink(ElementKey key) {
         return createLink(key, getName(key));
     }
 
     HtmlTree createLink(ElementKey key, CharSequence name) {
-        DocPath keyPath = getFile.getFile(key);
+        if (embeddedMode) {
+            return HtmlTree.A(new DocLink(DocPath.empty, null, getQualifiedId(key)).toString(),
+                    Text.of(name));
+        }
+        DocPath keyPath = getFile.getFile(key, file);
         String id = idVisitor.getId(key);
         DocLink keyLink = new DocLink(pathToRoot.resolve(keyPath), null, id);
 
@@ -105,6 +126,10 @@ public class Links {
 
     String getId(ElementKey eKey) {
         return idVisitor.getId(eKey);
+    }
+
+    String getQualifiedId(ElementKey eKey) {
+        return qualifiedIdVisitor.getId(eKey);
     }
 
     private final IdVisitor idVisitor = new IdVisitor();
@@ -184,5 +209,44 @@ public class Links {
             throw new UnsupportedOperationException();
         }
 
+    }
+
+    private final QualifiedIdVisitor qualifiedIdVisitor = new QualifiedIdVisitor();
+
+    // An IdVisitor that generates fully qualified ids
+    private class QualifiedIdVisitor extends IdVisitor {
+
+        String getId(ElementKey eKey) {
+            var id = new StringBuilder("id-");
+            appendEnclosingElement(eKey.getEnclosingKey(), id);
+            return id.append(eKey.accept(this, null)).toString();
+        }
+
+        private void appendEnclosingElement(ElementKey eKey, StringBuilder id) {
+            if (eKey != null) {
+                appendEnclosingElement(eKey.getEnclosingKey(), id);
+                switch (eKey) {
+                    case ModuleElementKey mKey -> id.append(mKey.name).append("/");
+                    case PackageElementKey pKey -> id.append(pKey.name).append(".");
+                    case TypeElementKey tKey -> id.append(tKey.name).append(".");
+                    default -> {}
+                }
+            }
+        }
+
+        @Override
+        public CharSequence visitModuleElement(ModuleElementKey mKey, Void aVoid) {
+            return mKey.name.toString();
+        }
+
+        @Override
+        public CharSequence visitPackageElement(PackageElementKey pKey, Void aVoid) {
+            return pKey.name.toString();
+        }
+
+        @Override
+        public CharSequence visitTypeElement(TypeElementKey tKey, Void aVoid) {
+            return tKey.name.toString();
+        }
     }
 }
