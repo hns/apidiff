@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2019, 2026, Oracle and/or its affiliates. All rights reserved.
  * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
  *
  * This code is free software; you can redistribute it and/or modify it
@@ -53,6 +53,7 @@ import jdk.codetools.apidiff.report.html.ResultTable.CountKind;
 import org.htmlcleaner.BaseToken;
 import org.htmlcleaner.CommentNode;
 import org.htmlcleaner.ContentNode;
+import org.htmlcleaner.EndTagToken;
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.SpecialEntities;
 import org.htmlcleaner.SpecialEntity;
@@ -222,6 +223,8 @@ public class HtmlDiffBuilder extends PairwiseDiffBuilder<String> {
             builder.characters(chars, 0, chars.length);
         } else if (node instanceof CommentNode c) {
             // ignore, at least for now: it's just a comment
+        } else if (node instanceof EndTagToken e) {
+            // ignore, at least for now: it's just an empty end tag token
         } else {
             throw new IllegalArgumentException(node.getClass().toString());
         }
