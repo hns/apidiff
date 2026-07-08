@@ -1034,11 +1034,13 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
     }
 
     protected void collectAllChanges(HtmlTree toc, List<PageReporter<?>> changedReporters) {
-        if (pageKey != null && !getResult(pageKey)) {
-            changedReporters.add(this);
+        if (pageKey != null) {
             ResultKind result = getResultKind(pageKey);
-            toc.add(HtmlTree.LI(HtmlTree.SPAN(result.getContent(), Text.SPACE,
-                    HtmlTree.A("#" + links.getQualifiedId(pageKey), Text.of(getAllChangesSectionHeader())))));
+            if (result != ResultKind.SAME) {
+                changedReporters.add(this);
+                toc.add(HtmlTree.LI(HtmlTree.SPAN(result.getContent(), Text.SPACE,
+                        HtmlTree.A("#" + links.getQualifiedId(pageKey), Text.of(getAllChangesSectionHeader())))));
+            }
         }
         List<PageReporter<?>> changed = getChangedPageReporters();
         if (!changed.isEmpty()) {
@@ -1066,9 +1068,15 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         main.add(HtmlTree.NAV(
                 new HtmlTree(TagName.H3, Text.of(msgs.getString("view.contents"))),
                 tableOfContents).setClass("changes-toc"));
-        for (PageReporter<? extends ElementKey> r : changedReporters) {
-            main.add(r.buildEmbeddedChangeSection(path));
+
+        if (changedReporters.isEmpty()) {
+            main.add(HtmlTree.P(Text.of(msgs.getString("summary.no-differences"))));
+        } else {
+            for (PageReporter<? extends ElementKey> r : changedReporters) {
+                main.add(r.buildEmbeddedChangeSection(path));
+            }
         }
+
         body.add(main);
         body.add(buildFooter());
         return body;
@@ -1092,7 +1100,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
             return HtmlTree.SECTION(
                             HtmlTree.H2(links.createLink(pageKey, getAllChangesSectionHeader())),
                             content)
-                    .setClass("changed-element")
+                    .setClass("embedded-element")
                     .setId(id);
         } finally {
             embeddedMode = false;
@@ -1106,7 +1114,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
                 .map(Position::asElementKey)
                 .filter(ek -> ek != pageKey && !(ek instanceof MemberElementKey))
                 .map(parent::getPageReporter)
-                .filter(rep -> rep != this && !rep.getResult(rep.pageKey))
+                .filter(rep -> rep != this && rep.getResultKind(rep.pageKey) != ResultKind.SAME)
                 .collect(Collectors.toCollection(ArrayList::new));
     }
 

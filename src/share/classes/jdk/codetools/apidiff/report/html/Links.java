@@ -89,14 +89,13 @@ public class Links {
     }
 
     HtmlTree createLink(ElementKey key, CharSequence name) {
+        DocLink keyLink;
         if (embeddedMode) {
-            return HtmlTree.A(new DocLink(DocPath.empty, null, getQualifiedId(key)).toString(),
-                    Text.of(name));
+            keyLink = new DocLink(DocPath.empty, null, getQualifiedId(key));
+        } else {
+            DocPath keyPath = getFile.getFile(key, file);
+            keyLink = new DocLink(pathToRoot.resolve(keyPath), null, getId(key));
         }
-        DocPath keyPath = getFile.getFile(key, file);
-        String id = idVisitor.getId(key);
-        DocLink keyLink = new DocLink(pathToRoot.resolve(keyPath), null, id);
-
         return HtmlTree.A(keyLink.toString(), Text.of(name));
     }
 

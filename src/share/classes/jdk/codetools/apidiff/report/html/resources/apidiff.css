@@ -53,9 +53,6 @@ h5 {
 h6 {
     font-size:11px;
 }
-.changed-element h3, .changes-toc h3 {
-    font-style: normal;
-}
 
 /* Links. */
 
@@ -124,13 +121,6 @@ main {
 .changes-toc ul {
     padding-left: 2em;
 }
-
-.changed-element {
-    border-top: 1px solid black;
-    margin-top: 2em;
-    padding-top: 1em;
-}
-
 
 /* Page heading: the <h1> and preceding text. */
 
@@ -292,6 +282,16 @@ div.signature {
 .doc-files table.details tbody th,
 .doc-files table.details tfoot th {
   text-align:left;
+}
+
+.embedded-element {
+    border-top: 1px solid black;
+    margin-top: 2em;
+    padding-top: 1em;
+}
+
+.embedded-element h3, .changes-toc h3 {
+    font-style: normal;
 }
 
 /* Side-by-side diffs. */
