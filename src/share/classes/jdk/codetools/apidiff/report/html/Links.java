@@ -93,7 +93,7 @@ public class Links {
         if (embeddedMode) {
             keyLink = new DocLink(DocPath.empty, null, getQualifiedId(key));
         } else {
-            DocPath keyPath = getFile.getFile(key, file);
+            DocPath keyPath = getFile.getFile(key, PageReporter.ALL_CHANGES.equals(file.basename()));
             keyLink = new DocLink(pathToRoot.resolve(keyPath), null, getId(key));
         }
         return HtmlTree.A(keyLink.toString(), Text.of(name));

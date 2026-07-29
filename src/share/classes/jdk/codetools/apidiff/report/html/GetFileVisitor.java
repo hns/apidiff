@@ -35,15 +35,15 @@ import jdk.codetools.apidiff.model.ElementKey.TypeElementKey;
 import jdk.codetools.apidiff.model.ElementKey.TypeParameterElementKey;
 import jdk.codetools.apidiff.model.ElementKey.VariableElementKey;
 
-class GetFileVisitor implements ElementKey.Visitor<DocPath, DocPath> {
+class GetFileVisitor implements ElementKey.Visitor<DocPath, Boolean> {
 
-    DocPath getFile(ElementKey k, DocPath current) {
-        return k.accept(this, current);
+    DocPath getFile(ElementKey k, Boolean singlePageMode) {
+        return k.accept(this, singlePageMode);
     }
 
     @Override
-    public DocPath visitModuleElement(ModuleElementKey k, DocPath current) {
-        DocPath path = inSinglePageMode(current)
+    public DocPath visitModuleElement(ModuleElementKey k, Boolean singlePageMode) {
+        DocPath path = singlePageMode
                 ? PageReporter.ALL_CHANGES
                 : DocPath.create("module-summary.html");
         return getModuleDir(k).resolve(path);
@@ -56,8 +56,8 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, DocPath> {
     }
 
     @Override
-    public DocPath visitPackageElement(PackageElementKey k, DocPath current) {
-        DocPath path = inSinglePageMode(current)
+    public DocPath visitPackageElement(PackageElementKey k, Boolean singlePageMode) {
+        DocPath path = singlePageMode
                 ? PageReporter.ALL_CHANGES
                 : DocPath.create("package-summary.html");
         return getPackageDir(k).resolve(path);
@@ -71,7 +71,7 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, DocPath> {
     }
 
     @Override
-    public DocPath visitTypeElement(TypeElementKey k, DocPath current) {
+    public DocPath visitTypeElement(TypeElementKey k, Boolean singlePageMode) {
         StringBuilder fn = new StringBuilder(k.name + ".html");
         while (k.enclosingKey instanceof TypeElementKey) {
             k = (TypeElementKey) k.enclosingKey;
@@ -81,21 +81,17 @@ class GetFileVisitor implements ElementKey.Visitor<DocPath, DocPath> {
     }
 
     @Override
-    public DocPath visitExecutableElement(ExecutableElementKey k, DocPath current) {
-        return k.typeKey.accept(this, current);
+    public DocPath visitExecutableElement(ExecutableElementKey k, Boolean singlePageMode) {
+        return k.typeKey.accept(this, singlePageMode);
     }
 
     @Override
-    public DocPath visitVariableElement(VariableElementKey k, DocPath current) {
-        return k.typeKey.accept(this, current);
+    public DocPath visitVariableElement(VariableElementKey k, Boolean singlePageMode) {
+        return k.typeKey.accept(this, singlePageMode);
     }
 
     @Override
-    public DocPath visitTypeParameterElement(TypeParameterElementKey k, DocPath current) {
+    public DocPath visitTypeParameterElement(TypeParameterElementKey k, Boolean singlePageMode) {
         return null;
-    }
-
-    private boolean inSinglePageMode(DocPath path) {
-        return PageReporter.ALL_CHANGES.equals(path.basename());
     }
 }

@@ -168,7 +168,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
     }
 
     protected PageReporter(HtmlReporter parent, K eKey) {
-        this(parent, eKey, new GetFileVisitor().getFile(eKey, DocPath.empty));
+        this(parent, eKey, new GetFileVisitor().getFile(eKey, false));
     }
 
     private PageReporter(HtmlReporter parent, K eKey, DocPath file) {
