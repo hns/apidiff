@@ -468,7 +468,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         HtmlTree main = HtmlTree.MAIN();
         main.add(buildPageHeading().add(
                 HtmlTree.P(HtmlTree.A(ALL_CHANGES.getPath(),
-                        Text.of(msgs.getString("view.in-one-file.link"))))));
+                        Text.of(msgs.getString("view.in-one-page.link"))))));
         main.add(buildPageElement());
         main.add(buildDocComments(pagePos));
         main.add(buildAPIDescriptions(pagePos));
@@ -1064,7 +1064,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         HtmlTree main = HtmlTree.MAIN();
         main.add(buildPageHeading().add(
                 HtmlTree.P(HtmlTree.A(file.basename().getPath(),
-                        Text.of(msgs.getString("view.in-multiple-files.link"))))));
+                        Text.of(msgs.getString("view.in-multiple-pages.link"))))));
         main.add(HtmlTree.NAV(
                 new HtmlTree(TagName.H3, Text.of(msgs.getString("view.contents"))),
                 tableOfContents).setClass("changes-toc"));

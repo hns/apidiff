@@ -83,7 +83,7 @@ public class IndexPageReporter extends PageReporter<ElementKey> {
         body.add(buildHeader());
         HtmlTree main = HtmlTree.MAIN();
         main.add(buildPageHeading().add(HtmlTree.P(HtmlTree.A(ALL_CHANGES.getPath(),
-                        Text.of(msgs.getString("view.in-one-file.link"))))));
+                        Text.of(msgs.getString("view.in-one-page.link"))))));
         main.add(buildSummary());
         main.add(buildEnclosedElements());
         main.add(buildNotes());
