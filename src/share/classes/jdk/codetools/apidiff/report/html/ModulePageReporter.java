@@ -191,7 +191,7 @@ class ModulePageReporter extends PageReporter<ModuleElementKey> {
             boolean allUnchanged = converted.stream()
                                             .allMatch(c -> c.resultKind() == ResultKind.SAME);
             HtmlTree section = HtmlTree.SECTION().setClass("enclosed");
-            section.add(new HtmlTree(embeddedMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(headingKey))));
+            section.add(new HtmlTree(singlePageMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(headingKey))));
             HtmlTree ul = HtmlTree.UL();
             for (ContentAndResultKind c : converted) {
                 HtmlTree item = HtmlTree.LI(c.content());

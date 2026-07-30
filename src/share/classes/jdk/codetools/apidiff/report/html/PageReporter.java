@@ -158,10 +158,10 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
     protected final ResultTable resultTable;
 
-    // Flag to signal this reporter is currently used by another reporter to generate embedded content.
-    // In embedded mode a reporter may produce slightly different output and suppress side effects
-    // that occur during normal rendering.
-    protected boolean embeddedMode;
+    // Flag to signal this reporter is currently used in single page mode.
+    // In single page mode a reporter may produce slightly different output and suppress
+    // side effects that occur during normal rendering.
+    protected boolean singlePageMode;
 
     protected PageReporter(HtmlReporter parent) {
         this(parent, null, new DocPath("index.html"));
@@ -199,7 +199,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
 
         apiMaps = new HashMap<>();
         results = new LinkedHashMap<>();
-        embeddedMode = false;
+        singlePageMode = false;
     }
 
     //<editor-fold desc="Implements Reporter">
@@ -611,7 +611,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         Map<Notes.Entry, Boolean> sorted = new TreeMap<>(comp);
         sorted.putAll(entries);
 
-        if (!embeddedMode) {
+        if (!singlePageMode) {
             NotesTable notesTable = parent.indexPageReporter.notesTable;
             sorted.forEach((e, isParent) -> {
                 if (!isParent) {
@@ -805,7 +805,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         if (!converted.isEmpty()) {
             boolean allUnchanged = converted.stream().allMatch(c -> c.resultKind() == ResultKind.SAME);
             HtmlTree section = HtmlTree.SECTION().setClass("enclosed");
-            section.add(new HtmlTree(embeddedMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(titleKey))));
+            section.add(new HtmlTree(singlePageMode ? TagName.H3 : TagName.H2, Text.of(msgs.getString(titleKey))));
             HtmlTree ul = HtmlTree.UL();
             for (ContentAndResultKind c : converted) {
                 HtmlTree li = HtmlTree.LI(c.content());
@@ -1013,7 +1013,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
     }
 
     private Consumer<CountKind> getCounter(Position pos) {
-        return !embeddedMode ? ck -> resultTable.inc(pos.getElementKey(), ck) : ck -> { };
+        return !singlePageMode ? ck -> resultTable.inc(pos.getElementKey(), ck) : ck -> { };
     }
 
     protected void writeAllChangesFile() {
@@ -1022,14 +1022,14 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         collectAllChanges(tableOfContents, changedReporters);
 
         DocPath docPath = file.parent().resolve(ALL_CHANGES);
-        DocPath origPath = links.switchPath(docPath, false);
+        DocPath origPath = links.switchSinglePageMode(docPath, false);
         try {
             String title = msgs.getString("view.all-changes.title", getAllChangesSectionHeader());
             HtmlTree html = new HtmlTree(TagName.HTML, buildHead(title),
                     buildAllChangesBody(docPath, tableOfContents, changedReporters));
             writeFile(docPath, html);
         } finally {
-            links.switchPath(origPath, false);
+            links.switchSinglePageMode(origPath, false);
         }
     }
 
@@ -1083,11 +1083,11 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
     }
 
     Content buildEmbeddedChangeSection(DocPath path) {
-        if (embeddedMode) {
+        if (singlePageMode) {
             throw new IllegalStateException("already in embedded mode");
         }
-        DocPath origPath = links.switchPath(path, true);
-        embeddedMode = true;
+        DocPath origPath = links.switchSinglePageMode(path, true);
+        singlePageMode = true;
         try {
             Position pagePos = Position.of(pageKey);
             HtmlTree content = HtmlTree.DIV().setClass("changed-type-content");
@@ -1103,8 +1103,8 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
                     .setClass("embedded-element")
                     .setId(id);
         } finally {
-            embeddedMode = false;
-            links.switchPath(origPath, false);
+            singlePageMode = false;
+            links.switchSinglePageMode(origPath, false);
         }
     }
 

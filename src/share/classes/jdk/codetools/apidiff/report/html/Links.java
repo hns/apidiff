@@ -53,20 +53,20 @@ public class Links {
     private final GetFileVisitor getFile = new GetFileVisitor();
     private DocPath file;
     private DocPath pathToRoot;
-    private boolean embeddedMode;
+    private boolean singlePageMode;
 
     Links(DocPath file) {
         this.file = file;
         pathToRoot = file.parent().invert();
-        embeddedMode = false;
+        singlePageMode = false;
     }
 
-    DocPath switchPath(DocPath newPath, boolean embeddedMode) {
-        DocPath oldPath = file;
-        this.file = newPath;
+    DocPath switchSinglePageMode(DocPath newFile, boolean singlePageMode) {
+        DocPath oldFile = file;
+        this.file = newFile;
         this.pathToRoot = file.parent().invert();
-        this.embeddedMode = embeddedMode;
-        return oldPath;
+        this.singlePageMode = singlePageMode;
+        return oldFile;
     }
 
     DocPath getPath(String path) {
@@ -90,7 +90,7 @@ public class Links {
 
     HtmlTree createLink(ElementKey key, CharSequence name) {
         DocLink keyLink;
-        if (embeddedMode) {
+        if (singlePageMode) {
             keyLink = new DocLink(DocPath.empty, null, getQualifiedId(key));
         } else {
             DocPath keyPath = getFile.getFile(key, PageReporter.ALL_CHANGES.equals(file.basename()));
