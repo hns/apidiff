@@ -284,13 +284,13 @@ div.signature {
   text-align:left;
 }
 
-.all-changes .embedded-element {
+.all-changes .changed-element {
     border-top: 1px solid black;
     margin-top: 2em;
     padding-top: 1em;
 }
 
-.all-changes .embedded-element h3, .changes-toc h3 {
+.all-changes .changed-element h3, .changes-toc h3 {
     font-style: normal;
 }
 

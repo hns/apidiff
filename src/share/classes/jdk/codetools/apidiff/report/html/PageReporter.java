@@ -1088,7 +1088,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
             main.add(HtmlTree.P(Text.of(msgs.getString("summary.no-differences"))));
         } else {
             for (PageReporter<? extends ElementKey> r : changedReporters) {
-                main.add(r.buildEmbeddedChangeSection(path));
+                main.add(r.buildSinglePageChangeSection(path));
             }
         }
 
@@ -1097,9 +1097,9 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         return body;
     }
 
-    Content buildEmbeddedChangeSection(DocPath path) {
+    Content buildSinglePageChangeSection(DocPath path) {
         if (singlePageMode) {
-            throw new IllegalStateException("already in embedded mode");
+            throw new IllegalStateException("already in single-page mode");
         }
         DocPath origPath = links.switchSinglePageMode(path, true);
         singlePageMode = true;
@@ -1115,7 +1115,7 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
             return HtmlTree.SECTION(
                             HtmlTree.H2(links.createLink(pageKey, getAllChangesSectionHeader())),
                             content)
-                    .setClass("embedded-element")
+                    .setClass("changed-element")
                     .setId(id);
         } finally {
             singlePageMode = false;
