@@ -1016,10 +1016,13 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         return !singlePageMode ? ck -> resultTable.inc(pos.getElementKey(), ck) : ck -> { };
     }
 
+    /**
+     * Recursively writes diffs for all changed elements in this reporter to a single HTML file.
+     */
     protected void writeAllChangesFile() {
-        HtmlTree tableOfContents = pageKey == null ? HtmlTree.DIV() : HtmlTree.UL();
         List<PageReporter<?>> changedReporters = new ArrayList<>();
-        collectAllChanges(tableOfContents, changedReporters);
+        HtmlTree changed = collectAllChanges(changedReporters);
+        HtmlTree tableOfContents = pageKey == null ? changed : HtmlTree.UL(changed);
 
         DocPath docPath = file.parent().resolve(ALL_CHANGES);
         DocPath origPath = links.switchSinglePageMode(docPath, false);
@@ -1033,23 +1036,35 @@ abstract class PageReporter<K extends ElementKey> implements Reporter {
         }
     }
 
-    protected void collectAllChanges(HtmlTree toc, List<PageReporter<?>> changedReporters) {
+    /**
+     * {@return an HTML element recursively listing the changed elements in this reporter}
+     * The Reporters for changed elements are also added to {@code changedReporters}.
+     * The returned element is a {@code <li>} element if this reporter represents an API element,
+     * and a {@code <ul>} element if this is an overview reporter.
+     * @param changedReporters the list to add changed reporters to
+     */
+    protected HtmlTree collectAllChanges(List<PageReporter<?>> changedReporters) {
+        HtmlTree li = HtmlTree.LI();
         if (pageKey != null) {
             ResultKind result = getResultKind(pageKey);
             if (result != ResultKind.SAME) {
                 changedReporters.add(this);
-                toc.add(HtmlTree.LI(HtmlTree.SPAN(result.getContent(), Text.SPACE,
-                        HtmlTree.A("#" + links.getQualifiedId(pageKey), Text.of(getAllChangesSectionHeader())))));
+                li.add(HtmlTree.SPAN(result.getContent(), Text.SPACE,
+                        HtmlTree.A("#" + links.getQualifiedId(pageKey), Text.of(getAllChangesSectionHeader()))));
             }
         }
         List<PageReporter<?>> changed = getChangedPageReporters();
         if (!changed.isEmpty()) {
-            HtmlTree subToc = HtmlTree.UL();
+            HtmlTree list = HtmlTree.UL();
             for (PageReporter<?> r : changed) {
-                r.collectAllChanges(subToc, changedReporters);
+                list.add(r.collectAllChanges(changedReporters));
             }
-            toc.add(subToc);
+            if (pageKey == null) {
+                return list;
+            }
+            li.add(list);
         }
+        return li;
     }
 
     private String getAllChangesSectionHeader() {
